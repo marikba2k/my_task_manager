@@ -11,7 +11,7 @@ Monorepo for a task management application with React frontend and Django backen
 
 ### Setup
 
-1. Copy `.env.example` to `.env` and configure as needed
+1. Copy `.env.example` to `.env` and configure as needed (set `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`)
 2. Install and run frontend:
 
    ```bash
@@ -31,6 +31,10 @@ Monorepo for a task management application with React frontend and Django backen
    python manage.py runserver
    ```
    Backend runs at http://localhost:8000
+
+Notes:
+- Backend loads environment variables from the repo `.env` (or `backend/.env`) in development.
+- CORS is configured to allow the React dev origin at http://localhost:5173.
 
 ## Project Structure
 

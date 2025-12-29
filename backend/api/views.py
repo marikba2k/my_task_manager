@@ -1,5 +1,5 @@
-from rest_framework import viewsets, filters
-from rest_framework.decorators import api_view
+from rest_framework import viewsets, filters, permissions
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Project, Task
@@ -8,9 +8,20 @@ from .permissions import IsProjectOwner, IsTaskProjectOwner
 
 
 @api_view(['GET'])
+@permission_classes([permissions.AllowAny])
 def health(request):
     """Health check endpoint."""
     return Response({"status": "ok"})
+
+
+@api_view(['GET'])
+def me(request):
+    """Return authenticated user's id, username, and email."""
+    return Response({
+        'id': request.user.id,
+        'username': request.user.username,
+        'email': request.user.email,
+    })
 
 
 class ProjectViewSet(viewsets.ModelViewSet):

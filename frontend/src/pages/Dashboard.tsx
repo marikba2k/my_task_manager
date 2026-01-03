@@ -158,7 +158,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   const createTaskMutation = useMutation({
     mutationFn: (data: CreateTaskData) => tasksApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", selectedProjectId] });
       setShowCreateTaskForm(false);
       setApiError(null);
     },

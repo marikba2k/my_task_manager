@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { auth } from "../lib/auth";
 import { projectsApi } from "../lib/projects";
 import { tasksApi } from "../lib/tasks";
+import { useDebounce } from "../hooks/useDebounce";
 import type {
   Project,
   CreateProjectData,
@@ -31,6 +32,8 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     "low" | "medium" | "high" | ""
   >("");
   const [taskSearch, setTaskSearch] = useState("");
+  const [apiError, setApiError] = useState<string | null>(null);
+  const debouncedTaskSearch = useDebounce(taskSearch, 300);
 
   const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ["me"],
@@ -58,17 +61,37 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       selectedProjectId,
       taskStatus || null,
       taskPriority || null,
-      taskSearch || null,
+      debouncedTaskSearch || null,
     ],
     queryFn: () =>
       tasksApi.list({
         project: selectedProjectId || undefined,
         status: taskStatus || undefined,
         priority: taskPriority || undefined,
-        search: taskSearch || undefined,
+        search: debouncedTaskSearch || undefined,
       }),
     enabled: !!selectedProjectId,
   });
+
+  // Handle non-401 API errors
+  useEffect(() => {
+    const error = projectsError || tasksError;
+    if (error) {
+      const axiosError = error as any;
+      if (axiosError?.response?.status !== 401) {
+        const errorMessage =
+          axiosError?.response?.data?.detail ||
+          axiosError?.response?.data?.message ||
+          axiosError?.message ||
+          "An error occurred. Please try again.";
+        setApiError(errorMessage);
+      } else {
+        setApiError(null);
+      }
+    } else {
+      setApiError(null);
+    }
+  }, [projectsError, tasksError]);
 
   // Project mutations
   const createProjectMutation = useMutation({
@@ -76,6 +99,17 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       setShowCreateForm(false);
+      setApiError(null);
+    },
+    onError: (error: any) => {
+      if (error?.response?.status !== 401) {
+        const errorMessage =
+          error?.response?.data?.detail ||
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to create project";
+        setApiError(errorMessage);
+      }
     },
   });
 
@@ -85,6 +119,17 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       setEditingProject(null);
+      setApiError(null);
+    },
+    onError: (error: any) => {
+      if (error?.response?.status !== 401) {
+        const errorMessage =
+          error?.response?.data?.detail ||
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to update project";
+        setApiError(errorMessage);
+      }
     },
   });
 
@@ -95,6 +140,17 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       if (selectedProjectId === deletedId) {
         setSelectedProjectId(null);
       }
+      setApiError(null);
+    },
+    onError: (error: any) => {
+      if (error?.response?.status !== 401) {
+        const errorMessage =
+          error?.response?.data?.detail ||
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to delete project";
+        setApiError(errorMessage);
+      }
     },
   });
 
@@ -104,6 +160,17 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       setShowCreateTaskForm(false);
+      setApiError(null);
+    },
+    onError: (error: any) => {
+      if (error?.response?.status !== 401) {
+        const errorMessage =
+          error?.response?.data?.detail ||
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to create task";
+        setApiError(errorMessage);
+      }
     },
   });
 
@@ -113,6 +180,17 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       setEditingTask(null);
+      setApiError(null);
+    },
+    onError: (error: any) => {
+      if (error?.response?.status !== 401) {
+        const errorMessage =
+          error?.response?.data?.detail ||
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to update task";
+        setApiError(errorMessage);
+      }
     },
   });
 
@@ -120,6 +198,17 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     mutationFn: (id: number) => tasksApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      setApiError(null);
+    },
+    onError: (error: any) => {
+      if (error?.response?.status !== 401) {
+        const errorMessage =
+          error?.response?.data?.detail ||
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to delete task";
+        setApiError(errorMessage);
+      }
     },
   });
 
@@ -237,6 +326,19 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         </button>
       </div>
 
+      {apiError && (
+        <div className="api-error-banner">
+          <span>{apiError}</span>
+          <button
+            onClick={() => setApiError(null)}
+            className="error-close-btn"
+            aria-label="Close error"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <div className="dashboard-content">
         <div className="dashboard-grid">
           {/* Projects Section */}
@@ -246,6 +348,11 @@ export default function Dashboard({ onLogout }: DashboardProps) {
               <button
                 onClick={() => setShowCreateForm(!showCreateForm)}
                 className="new-project-btn"
+                disabled={
+                  createProjectMutation.isPending ||
+                  updateProjectMutation.isPending ||
+                  deleteProjectMutation.isPending
+                }
               >
                 {showCreateForm ? "Cancel" : "New Project"}
               </button>
@@ -284,6 +391,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                     type="button"
                     onClick={() => setShowCreateForm(false)}
                     className="cancel-btn"
+                    disabled={createProjectMutation.isPending}
                   >
                     Cancel
                   </button>
@@ -311,9 +419,20 @@ export default function Dashboard({ onLogout }: DashboardProps) {
             {!projectsLoading && !projectsError && (
               <div className="projects-list">
                 {projects && projects.length === 0 ? (
-                  <p className="empty-state">
-                    No projects found. Create your first project!
-                  </p>
+                  <div className="empty-state">
+                    <p>No projects yet.</p>
+                    <button
+                      onClick={() => setShowCreateForm(true)}
+                      className="empty-state-cta"
+                      disabled={
+                        createProjectMutation.isPending ||
+                        updateProjectMutation.isPending ||
+                        deleteProjectMutation.isPending
+                      }
+                    >
+                      Create your first project
+                    </button>
+                  </div>
                 ) : (
                   <ul>
                     {projects?.map((project) => (
@@ -356,6 +475,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                                 type="button"
                                 onClick={() => setEditingProject(null)}
                                 className="cancel-btn"
+                                disabled={updateProjectMutation.isPending}
                               >
                                 Cancel
                               </button>
@@ -384,12 +504,21 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                               <button
                                 onClick={() => setEditingProject(project)}
                                 className="edit-btn"
+                                disabled={
+                                  createProjectMutation.isPending ||
+                                  updateProjectMutation.isPending ||
+                                  deleteProjectMutation.isPending
+                                }
                               >
                                 Edit
                               </button>
                               <button
                                 onClick={() => handleDeleteProject(project.id)}
-                                disabled={deleteProjectMutation.isPending}
+                                disabled={
+                                  createProjectMutation.isPending ||
+                                  updateProjectMutation.isPending ||
+                                  deleteProjectMutation.isPending
+                                }
                                 className="delete-btn"
                               >
                                 {deleteProjectMutation.isPending
@@ -416,6 +545,11 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                   <button
                     onClick={() => setShowCreateTaskForm(!showCreateTaskForm)}
                     className="new-task-btn"
+                    disabled={
+                      createTaskMutation.isPending ||
+                      updateTaskMutation.isPending ||
+                      deleteTaskMutation.isPending
+                    }
                   >
                     {showCreateTaskForm ? "Cancel" : "New Task"}
                   </button>
@@ -478,6 +612,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                         type="button"
                         onClick={() => setShowCreateTaskForm(false)}
                         className="cancel-btn"
+                        disabled={createTaskMutation.isPending}
                       >
                         Cancel
                       </button>
@@ -552,9 +687,20 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                 {!tasksLoading && !tasksError && (
                   <div className="tasks-list">
                     {tasks && tasks.length === 0 ? (
-                      <p className="empty-state">
-                        No tasks found. Create your first task!
-                      </p>
+                      <div className="empty-state">
+                        <p>No tasks yet.</p>
+                        <button
+                          onClick={() => setShowCreateTaskForm(true)}
+                          className="empty-state-cta"
+                          disabled={
+                            createTaskMutation.isPending ||
+                            updateTaskMutation.isPending ||
+                            deleteTaskMutation.isPending
+                          }
+                        >
+                          Create your first task
+                        </button>
+                      </div>
                     ) : (
                       <ul>
                         {tasks?.map((task) => (
@@ -625,6 +771,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                                     type="button"
                                     onClick={() => setEditingTask(null)}
                                     className="cancel-btn"
+                                    disabled={updateTaskMutation.isPending}
                                   >
                                     Cancel
                                   </button>
@@ -664,12 +811,21 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                                   <button
                                     onClick={() => setEditingTask(task)}
                                     className="edit-btn"
+                                    disabled={
+                                      createTaskMutation.isPending ||
+                                      updateTaskMutation.isPending ||
+                                      deleteTaskMutation.isPending
+                                    }
                                   >
                                     Edit
                                   </button>
                                   <button
                                     onClick={() => handleDeleteTask(task.id)}
-                                    disabled={deleteTaskMutation.isPending}
+                                    disabled={
+                                      createTaskMutation.isPending ||
+                                      updateTaskMutation.isPending ||
+                                      deleteTaskMutation.isPending
+                                    }
                                     className="delete-btn"
                                   >
                                     {deleteTaskMutation.isPending

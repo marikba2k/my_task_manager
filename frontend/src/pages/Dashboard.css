@@ -4,6 +4,41 @@
   padding: 2rem;
 }
 
+.api-error-banner {
+  background: rgba(220, 53, 69, 0.1);
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #dc3545;
+}
+
+.api-error-banner span {
+  flex: 1;
+}
+
+.error-close-btn {
+  background: transparent;
+  border: none;
+  color: #dc3545;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-close-btn:hover {
+  opacity: 0.7;
+}
+
 .dashboard-header {
   display: flex;
   justify-content: space-between;
@@ -284,10 +319,24 @@
 
 .empty-state {
   color: rgba(255, 255, 255, 0.5);
-  font-style: italic;
   margin: 1rem 0;
   text-align: center;
   padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.empty-state p {
+  margin: 0;
+  font-style: italic;
+}
+
+.empty-state-cta {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  margin-top: 0.5rem;
 }
 
 /* Tasks Section */

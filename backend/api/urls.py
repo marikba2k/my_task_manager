@@ -10,6 +10,7 @@ router.register(r'tasks', views.TaskViewSet, basename='task')
 
 urlpatterns = [
     path('health/', views.health, name='health'),
+    path('auth/signup/', views.signup, name='signup'),
     path('auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/me/', views.me, name='me'),

@@ -1,9 +1,9 @@
-from rest_framework import viewsets, filters, permissions
+from rest_framework import viewsets, filters, permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Project, Task
-from .serializers import ProjectSerializer, TaskSerializer
+from .serializers import ProjectSerializer, TaskSerializer, SignupSerializer
 from .permissions import IsProjectOwner, IsTaskProjectOwner
 
 
@@ -22,6 +22,21 @@ def me(request):
         'username': request.user.username,
         'email': request.user.email,
     })
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def signup(request):
+    """Create a new user account."""
+    serializer = SignupSerializer(data=request.data)
+    if serializer.is_valid():
+        user = serializer.save()
+        return Response({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+        }, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ProjectViewSet(viewsets.ModelViewSet):

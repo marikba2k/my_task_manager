@@ -1,27 +1,31 @@
-import { useState } from 'react';
-import { auth } from '../lib/auth';
-import './Login.css';
+import { useState } from "react";
+import { auth } from "../lib/auth";
+import "./Login.css";
 
 interface LoginProps {
   onLogin: () => void;
+  onSwitchToSignup: () => void;
 }
 
-export default function Login({ onLogin }: LoginProps) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+export default function Login({ onLogin, onSwitchToSignup }: LoginProps) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       await auth.login(username, password);
       onLogin();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
+      setError(
+        err.response?.data?.detail ||
+          "Login failed. Please check your credentials."
+      );
     } finally {
       setLoading(false);
     }
@@ -57,11 +61,20 @@ export default function Login({ onLogin }: LoginProps) {
           </div>
           {error && <div className="error-message">{error}</div>}
           <button type="submit" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? "Logging in..." : "Login"}
           </button>
+          <div className="switch-link">
+            Don't have an account?{" "}
+            <button
+              type="button"
+              onClick={onSwitchToSignup}
+              className="link-button"
+            >
+              Sign Up
+            </button>
+          </div>
         </form>
       </div>
     </div>
   );
 }
-
